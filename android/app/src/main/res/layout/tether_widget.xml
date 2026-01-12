@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <!-- Main touch button (heart) -->
+        <ImageView
+            android:id="@+id/touch_button"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:src="@drawable/ic_heart"
+            android:background="@drawable/circle_button_bg"
+            android:padding="12dp"
+            android:contentDescription="@string/widget_touch_button" />
+
+        <!-- Partner status indicator -->
+        <TextView
+            android:id="@+id/partner_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/widget_partner_status"
+            android:textColor="#CCFFFFFF"
+            android:textSize="11sp"
+            android:maxLines="1" />
+
+    </LinearLayout>
+
+</RelativeLayout>

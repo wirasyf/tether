@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_touch_button">Send touch to partner</string>
+    <string name="widget_partner_status">Partner</string>
+    <string name="widget_description">Quick touch widget to send love to your partner</string>
+    <string name="widget_name">Tether Touch</string>
+</resources>
