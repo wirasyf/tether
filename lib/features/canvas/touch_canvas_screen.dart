@@ -12,6 +12,7 @@ import '../../core/services/mood_service.dart';
 import '../../core/services/quick_message_service.dart';
 import '../../core/services/relationship_service.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/love_notes_service.dart';
 import '../../shared/widgets/animated_background.dart';
 import '../../shared/widgets/canvas_overlay.dart';
 import '../../shared/widgets/onboarding_overlay.dart';
@@ -85,6 +86,7 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
       await QuickMessageService.instance.initialize(roomId: roomId, myId: myId);
       await RelationshipService.instance.initialize(roomId: roomId, myId: myId);
       await NotificationService.instance.initialize(roomId: roomId, myId: myId);
+      await LoveNotesService.instance.initialize(roomId: roomId, myId: myId);
     }
   }
 

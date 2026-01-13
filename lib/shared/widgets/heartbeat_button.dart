@@ -4,7 +4,7 @@ import 'dart:async';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/heartbeat_service.dart';
 
-/// Heartbeat sharing button with animated heart
+/// Heartbeat sharing button with animated heart and glowing effects
 class HeartbeatButton extends StatefulWidget {
   const HeartbeatButton({super.key});
 
@@ -13,53 +13,98 @@ class HeartbeatButton extends StatefulWidget {
 }
 
 class _HeartbeatButtonState extends State<HeartbeatButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+    with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late AnimationController _glowController;
+  late AnimationController _pressController;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _glowAnimation;
+  late Animation<double> _pressAnimation;
+
   bool _isPressed = false;
   Timer? _holdTimer;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
+
+    // Continuous pulse animation (heartbeat effect)
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-
-    _scaleAnimation = TweenSequence<double>([
+    _pulseAnimation = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween(
           begin: 1.0,
-          end: 1.3,
+          end: 1.15,
         ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 30,
+        weight: 15,
       ),
       TweenSequenceItem(
         tween: Tween(
-          begin: 1.3,
+          begin: 1.15,
           end: 1.0,
         ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 70,
+        weight: 15,
       ),
-    ]).animate(_controller);
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.0,
+          end: 1.1,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 15,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.1,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 15,
+      ),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 40),
+    ]).animate(_pulseController);
+    _pulseController.repeat();
+
+    // Glow animation for the outer rings
+    _glowController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+    _glowAnimation = Tween<double>(begin: 0.3, end: 0.8).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
+    _glowController.repeat(reverse: true);
+
+    // Press animation
+    _pressController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _pressAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(parent: _pressController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pulseController.dispose();
+    _glowController.dispose();
+    _pressController.dispose();
     _holdTimer?.cancel();
     super.dispose();
   }
 
   void _startHeartbeat() {
     HapticFeedback.heavyImpact();
-    _controller.repeat();
+    _pressController.forward();
 
-    // Start continuous heartbeat sharing
+    // Faster pulse when pressing
+    _pulseController.duration = const Duration(milliseconds: 600);
+    _pulseController.repeat();
+
     HeartbeatService.instance.startSharing();
 
-    // Timer to send pulses at heartbeat rate (~72 bpm = ~830ms)
     _holdTimer = Timer.periodic(const Duration(milliseconds: 830), (_) {
       if (_isPressed) {
         HapticFeedback.heavyImpact();
@@ -71,8 +116,9 @@ class _HeartbeatButtonState extends State<HeartbeatButton>
   }
 
   void _stopHeartbeat() {
-    _controller.stop();
-    _controller.reset();
+    _pressController.reverse();
+    _pulseController.duration = const Duration(milliseconds: 1200);
+    _pulseController.repeat();
     _holdTimer?.cancel();
     HeartbeatService.instance.stopSharing();
   }
@@ -97,48 +143,144 @@ class _HeartbeatButtonState extends State<HeartbeatButton>
             setState(() => _isPressed = false);
             _stopHeartbeat();
           },
-          child: Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  AppColors.loveRed.withValues(alpha: 0.3),
-                  AppColors.loveRed.withValues(alpha: 0.1),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-            child: Center(
-              child: AnimatedBuilder(
-                animation: _scaleAnimation,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _isPressed
-                        ? _scaleAnimation.value
-                        : (isReceiving ? 1.1 : 1.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '❤️',
-                          style: TextStyle(fontSize: _isPressed ? 42 : 36),
+          child: AnimatedBuilder(
+            animation: Listenable.merge([
+              _pulseAnimation,
+              _glowAnimation,
+              _pressAnimation,
+            ]),
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _pressAnimation.value,
+                child: SizedBox(
+                  width: 90,
+                  height: 90,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Outer glow ring 3
+                      Container(
+                        width: 85,
+                        height: 85,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.loveRed.withValues(
+                              alpha: _glowAnimation.value * 0.2,
+                            ),
+                            width: 1,
+                          ),
                         ),
-                        if (isReceiving && !_isPressed)
-                          Text(
-                            '${HeartbeatService.instance.partnerBpm} bpm',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: AppColors.loveRed,
+                      ),
+
+                      // Outer glow ring 2
+                      Container(
+                        width: 75,
+                        height: 75,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.loveRed.withValues(
+                              alpha: _glowAnimation.value * 0.3,
+                            ),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+
+                      // Outer glow ring 1
+                      Container(
+                        width: 65,
+                        height: 65,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              AppColors.loveRed.withValues(
+                                alpha: _isPressed ? 0.4 : 0.2,
+                              ),
+                              AppColors.loveRed.withValues(alpha: 0.05),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.5, 1.0],
+                          ),
+                        ),
+                      ),
+
+                      // Main heart container
+                      Transform.scale(
+                        scale: _pulseAnimation.value,
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                AppColors.loveRed.withValues(
+                                  alpha: _isPressed ? 0.5 : 0.3,
+                                ),
+                                AppColors.loveRed.withValues(
+                                  alpha: _isPressed ? 0.3 : 0.15,
+                                ),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: AppColors.loveRed.withValues(
+                                alpha: _isPressed ? 0.8 : 0.5,
+                              ),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.loveRed.withValues(
+                                  alpha: _isPressed ? 0.6 : 0.3,
+                                ),
+                                blurRadius: _isPressed ? 25 : 15,
+                                spreadRadius: _isPressed ? 5 : 2,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              '❤️',
+                              style: TextStyle(fontSize: _isPressed ? 28 : 24),
                             ),
                           ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
+                        ),
+                      ),
+
+                      // BPM indicator when receiving
+                      if (isReceiving && !_isPressed)
+                        Positioned(
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppColors.loveRed.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: Text(
+                              '${HeartbeatService.instance.partnerBpm} ❤️',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.loveRed,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         );
       },

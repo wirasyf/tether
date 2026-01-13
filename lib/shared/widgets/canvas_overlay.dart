@@ -70,15 +70,18 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
           right: 0,
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
-                  _buildConnectionStatus(),
-                  const SizedBox(width: 8),
+                  // Left side: Connection status only (compact)
+                  _buildConnectionDot(),
+                  const SizedBox(width: 12),
+                  // Days counter
                   _buildDaysCounter(),
                   const Spacer(),
-                  _buildPartnerMood(),
-                  const SizedBox(width: 12),
+                  // Right side: Achievement icon + settings
+                  _buildAchievementBadge(),
+                  const SizedBox(width: 8),
                   _buildSettingsButton(context),
                 ],
               ),
@@ -120,42 +123,47 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
     );
   }
 
-  Widget _buildConnectionStatus() {
+  Widget _buildConnectionDot() {
     final isOnline = widget.isConnected && widget.isPartnerOnline;
 
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      borderRadius: 20,
-      enableGlow: false,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isOnline ? AppColors.success : AppColors.warning,
-              boxShadow: [
-                BoxShadow(
-                  color: (isOnline ? AppColors.success : AppColors.warning)
-                      .withValues(alpha: 0.5),
-                  blurRadius: 4,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.6),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: (isOnline ? AppColors.success : AppColors.warning).withValues(
+            alpha: 0.5,
           ),
-          const SizedBox(width: 8),
-          Text(
-            isOnline ? 'Partner Online' : 'Partner Offline',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: isOnline ? AppColors.success : AppColors.textMuted,
-            ),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (isOnline ? AppColors.success : AppColors.warning)
+                .withValues(alpha: 0.3),
+            blurRadius: 8,
+            spreadRadius: 1,
           ),
         ],
+      ),
+      child: Center(
+        child: Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isOnline ? AppColors.success : AppColors.warning,
+            boxShadow: [
+              BoxShadow(
+                color: (isOnline ? AppColors.success : AppColors.warning)
+                    .withValues(alpha: 0.6),
+                blurRadius: 6,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -227,7 +235,7 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
     }
   }
 
-  Widget _buildPartnerMood() {
+  Widget _buildAchievementBadge() {
     return ListenableBuilder(
       listenable: AchievementService.instance,
       builder: (context, _) {
@@ -241,24 +249,26 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
               MaterialPageRoute(builder: (_) => const AchievementsScreen()),
             );
           },
-          child: GlassCard(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            borderRadius: 16,
-            enableGlow: false,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(level.emoji, style: const TextStyle(fontSize: 16)),
-                const SizedBox(width: 6),
-                Text(
-                  level.displayName,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.surface.withValues(alpha: 0.7),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  spreadRadius: 1,
                 ),
               ],
+            ),
+            child: Center(
+              child: Text(level.emoji, style: const TextStyle(fontSize: 18)),
             ),
           ),
         );
@@ -276,85 +286,222 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(10),
+        width: 36,
+        height: 36,
         decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.6),
+          color: AppColors.surface.withValues(alpha: 0.7),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.15),
+            width: 1.5,
+          ),
         ),
-        child: Icon(Icons.settings, color: AppColors.textSecondary, size: 20),
+        child: const Center(
+          child: Icon(
+            Icons.settings_outlined,
+            color: AppColors.textSecondary,
+            size: 18,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildActionBar(BuildContext context) {
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      borderRadius: 28,
-      enableGlow: false,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildActionButton(
-            icon: Icons.mood,
+          // Left action: Mood
+          _buildCircularButton(
+            icon: Icons.emoji_emotions_outlined,
             label: 'Mood',
+            color: AppColors.secondary,
             onTap: () => _showMoodPicker(context),
           ),
-          // Heartbeat button
+
+          // Center: Heartbeat button
           const HeartbeatButton(),
-          _buildActionButton(
-            icon: Icons.favorite,
-            label: 'Gesture',
-            color: AppColors.loveRed,
-            onTap: () => _showGesturePicker(context),
-          ),
-          _buildActionButton(
-            icon: Icons.chat_bubble_outline,
-            label: 'Message',
-            onTap: () => _showMessagePicker(context),
-          ),
-          _buildActionButton(
-            icon: Icons.calendar_today,
-            label: 'Dates',
-            onTap: () => _showSpecialDates(context),
+
+          // Right action: Send love
+          _buildCircularButton(
+            icon: Icons.send_rounded,
+            label: 'Send',
+            color: AppColors.primary,
+            onTap: () => _showQuickActions(context),
           ),
         ],
       ),
     );
   }
 
-  void _showSpecialDates(BuildContext context) {
-    HapticFeedback.lightImpact();
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SpecialDatesScreen()),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    Color? color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+  void _showQuickActions(BuildContext context) {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color ?? AppColors.textSecondary, size: 24),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                color: color ?? AppColors.textMuted,
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.textMuted.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
+            const SizedBox(height: 20),
+            Text(
+              'Send Love ❤️',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildQuickActionItem(
+                    icon: Icons.favorite,
+                    label: 'Gesture',
+                    color: AppColors.loveRed,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showGesturePicker(context);
+                    },
+                  ),
+                  _buildQuickActionItem(
+                    icon: Icons.message_rounded,
+                    label: 'Message',
+                    color: AppColors.secondary,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showMessagePicker(context);
+                    },
+                  ),
+                  _buildQuickActionItem(
+                    icon: Icons.event,
+                    label: 'Dates',
+                    color: AppColors.primary,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showSpecialDates(context);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionItem({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCircularButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: color.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -376,6 +523,14 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
     if (gesture != null) {
       widget.onGestureSelected?.call(gesture);
     }
+  }
+
+  void _showSpecialDates(BuildContext context) {
+    HapticFeedback.lightImpact();
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SpecialDatesScreen()),
+    );
   }
 
   Future<void> _showMessagePicker(BuildContext context) async {

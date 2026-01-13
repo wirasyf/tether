@@ -18,7 +18,7 @@ class _LoveNotesScreenState extends State<LoveNotesScreen> {
   @override
   void initState() {
     super.initState();
-    LoveNotesService.instance.initialize();
+    // Love Notes is initialized from touch_canvas_screen with roomId and myId
   }
 
   @override

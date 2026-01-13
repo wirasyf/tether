@@ -4,6 +4,7 @@ import '../../core/services/theme_service.dart';
 import '../../core/services/stats_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/services/socket_service.dart';
+import '../../core/services/partner_profile_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../shared/widgets/glass_card.dart';
 import '../stats/stats_screen.dart';
@@ -44,6 +45,11 @@ class SettingsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Connected Partner section
+                _buildConnectionInfo(context),
+
+                const SizedBox(height: 24),
+
                 // Quick access buttons
                 _buildSectionTitle('Quick Access'),
                 const SizedBox(height: 16),
@@ -82,6 +88,181 @@ class SettingsScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildConnectionInfo(BuildContext context) {
+    final partner = PartnerProfileService.instance.partnerProfile;
+    final roomId = StorageService.instance.getRoomId();
+    final isConnected = SocketService.instance.isConnected;
+
+    return GlassCard(
+      enableGlow: partner != null && partner.isOnline,
+      glowColor: AppColors.success,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Partner avatar
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: partner != null
+                      ? AppColors.secondary.withValues(alpha: 0.2)
+                      : AppColors.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: partner?.isOnline == true
+                        ? AppColors.success
+                        : AppColors.textMuted.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Center(
+                  child: partner != null
+                      ? Text(
+                          partner.avatarEmoji ?? '💕',
+                          style: const TextStyle(fontSize: 24),
+                        )
+                      : Icon(
+                          Icons.person_outline,
+                          color: AppColors.textMuted,
+                          size: 24,
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Partner info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      partner?.name ?? 'Waiting for partner...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: partner != null
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: partner?.isOnline == true
+                                ? AppColors.success
+                                : isConnected
+                                ? AppColors.warning
+                                : AppColors.textMuted,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          partner?.isOnline == true
+                              ? 'Online'
+                              : isConnected
+                              ? 'Offline'
+                              : 'Not connected',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: partner?.isOnline == true
+                                ? AppColors.success
+                                : AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // Room code section
+          if (roomId != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.background.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.meeting_room,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Room: ',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                  Expanded(
+                    child: Text(
+                      roomId,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: roomId));
+                      HapticFeedback.lightImpact();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Room code copied!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.copy, size: 14, color: AppColors.primary),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Copy',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/partner_profile_service.dart';
+import '../../core/services/storage_service.dart';
 import '../../shared/widgets/glass_card.dart';
 
 /// Profile screen for managing user and viewing partner profile
@@ -206,6 +207,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   alpha: 0.2,
                                 ),
                                 shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: partnerProfile.isOnline
+                                      ? AppColors.success
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
                               ),
                               child: Center(
                                 child: Text(
@@ -243,10 +250,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       const SizedBox(width: 6),
                                       Text(
                                         partnerProfile.isOnline
-                                            ? 'Online'
+                                            ? 'Online now'
                                             : 'Offline',
                                         style: TextStyle(
-                                          color: AppColors.textSecondary,
+                                          color: partnerProfile.isOnline
+                                              ? AppColors.success
+                                              : AppColors.textSecondary,
                                           fontSize: 13,
                                         ),
                                       ),
@@ -257,12 +266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ],
                         )
-                      : Center(
-                          child: Text(
-                            'Partner profile will appear once connected',
-                            style: TextStyle(color: AppColors.textMuted),
-                          ),
-                        ),
+                      : _buildWaitingForPartner(),
                 ),
 
                 const SizedBox(height: 32),
@@ -313,6 +317,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildWaitingForPartner() {
+    final roomId = StorageService.instance.getRoomId();
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.textMuted.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.person_outline,
+                  color: AppColors.textMuted,
+                  size: 30,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Waiting for partner...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  if (roomId != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Share this code:',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: roomId));
+                        HapticFeedback.lightImpact();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Code copied!')),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          Text(
+                            roomId,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(Icons.copy, size: 14, color: AppColors.primary),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

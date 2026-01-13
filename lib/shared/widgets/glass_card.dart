@@ -306,9 +306,16 @@ class CodeBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen width and calculate responsive box size
+    final screenWidth = MediaQuery.of(context).size.width;
+    final boxWidth =
+        (screenWidth - 48 - 40) /
+        6; // 48 = horizontal padding, 40 = gaps between boxes
+    final constrainedWidth = boxWidth.clamp(36.0, 44.0); // Min 36, max 44
+
     return Container(
-      width: 48,
-      height: 60,
+      width: constrainedWidth,
+      height: constrainedWidth * 1.25, // Maintain aspect ratio
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(12),
@@ -332,7 +339,7 @@ class CodeBox extends StatelessWidget {
         child: Text(
           character,
           style: TextStyle(
-            fontSize: 26,
+            fontSize: constrainedWidth * 0.55, // Responsive font size
             fontWeight: FontWeight.bold,
             color: isActive ? AppColors.primary : AppColors.textPrimary,
             shadows: isActive
