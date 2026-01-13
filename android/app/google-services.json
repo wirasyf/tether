@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "595138255070",
+    "firebase_url": "https://tether-app-e4d6d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "tether-app-e4d6d",
+    "storage_bucket": "tether-app-e4d6d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:595138255070:android:63f4abe8f3d45a42c1ca4f",
+        "android_client_info": {
+          "package_name": "com.example.tether"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_b5rpvQrHXamLdax35APAyg4tbJxmKWc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

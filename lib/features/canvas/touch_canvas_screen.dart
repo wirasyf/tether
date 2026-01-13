@@ -4,12 +4,22 @@ import '../../core/theme/app_colors.dart';
 import '../../core/services/haptic_service.dart';
 import '../../core/services/socket_service.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/services/stats_service.dart';
+import '../../core/services/special_dates_service.dart';
+import '../../core/services/heartbeat_service.dart';
+import '../../core/services/partner_profile_service.dart';
+import '../../core/services/mood_service.dart';
+import '../../core/services/quick_message_service.dart';
+import '../../core/services/relationship_service.dart';
+import '../../core/services/notification_service.dart';
 import '../../shared/widgets/animated_background.dart';
-import '../../shared/widgets/connection_status.dart';
-import '../../shared/widgets/glass_card.dart';
+import '../../shared/widgets/canvas_overlay.dart';
+import '../../shared/widgets/onboarding_overlay.dart';
+import '../../shared/widgets/heartbeat_button.dart';
 import 'canvas_controller.dart';
 import 'widgets/touch_effects.dart';
 import '../gestures/gesture_effects.dart';
+import '../../models/gesture_type.dart';
 
 /// Main touch canvas screen - the virtual canvas for touch communication
 class TouchCanvasScreen extends StatefulWidget {
@@ -21,8 +31,10 @@ class TouchCanvasScreen extends StatefulWidget {
 
 class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
   late CanvasController _controller;
-  bool _showInstructions = true;
-  
+  bool _showOnboarding = false;
+  bool _showHeartbeatOverlay = false;
+  bool _wasReceivingHeartbeat = false;
+
   @override
   void initState() {
     super.initState();
@@ -31,19 +43,57 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
       socketService: SocketService.instance,
       storageService: StorageService.instance,
     );
-    
-    // Hide instructions after 5 seconds
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted) {
-        setState(() => _showInstructions = false);
-      }
-    });
+
+    _checkOnboarding();
+    _initializeServices();
+
+    HeartbeatService.instance.addListener(_handleHeartbeatChange);
   }
-  
+
   @override
   void dispose() {
     _controller.dispose();
+    HeartbeatService.instance.removeListener(_handleHeartbeatChange);
     super.dispose();
+  }
+
+  Future<void> _checkOnboarding() async {
+    final hasShown = await OnboardingOverlay.hasShownOnboarding();
+    if (!hasShown) {
+      if (mounted) setState(() => _showOnboarding = true);
+    }
+  }
+
+  Future<void> _initializeServices() async {
+    // Wait for services to be ready
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (!mounted) return;
+
+    final roomId = StorageService.instance.getRoomId();
+    final myId = StorageService.instance.getUserId();
+
+    if (roomId != null && myId != null) {
+      debugPrint('Initializing services for room: $roomId');
+      await SpecialDatesService.instance.initialize(roomId: roomId);
+      await HeartbeatService.instance.initialize(roomId: roomId, myId: myId);
+      await PartnerProfileService.instance.initialize(
+        roomId: roomId,
+        myId: myId,
+      );
+      await MoodService.instance.initialize(roomId: roomId, myId: myId);
+      await QuickMessageService.instance.initialize(roomId: roomId, myId: myId);
+      await RelationshipService.instance.initialize(roomId: roomId, myId: myId);
+      await NotificationService.instance.initialize(roomId: roomId, myId: myId);
+    }
+  }
+
+  void _handleHeartbeatChange() {
+    final isReceiving = HeartbeatService.instance.isReceiving;
+    if (isReceiving && !_wasReceivingHeartbeat) {
+      if (mounted) setState(() => _showHeartbeatOverlay = true);
+    }
+    _wasReceivingHeartbeat = isReceiving;
   }
 
   @override
@@ -54,30 +104,61 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
         body: Stack(
           children: [
             // Animated background
-            const Positioned.fill(
-              child: AnimatedBackground(),
-            ),
-            
+            const Positioned.fill(child: AnimatedBackground()),
+
             // Touch canvas
-            Positioned.fill(
-              child: _buildTouchCanvas(),
-            ),
-            
+            Positioned.fill(child: _buildTouchCanvas()),
+
             // Touch effects layer
+            Positioned.fill(child: _buildEffectsLayer()),
+
+            // Heartbeat Received Overlay
+            if (_showHeartbeatOverlay)
+              Positioned.fill(
+                child: HeartbeatReceivedOverlay(
+                  onComplete: () {
+                    if (mounted) setState(() => _showHeartbeatOverlay = false);
+                  },
+                ),
+              ),
+
+            // New Canvas Overlay with all features
             Positioned.fill(
-              child: _buildEffectsLayer(),
+              child: Consumer<CanvasController>(
+                builder: (context, controller, _) {
+                  return CanvasOverlay(
+                    isConnected: controller.isConnected,
+                    isPartnerOnline: controller.isPartnerOnline,
+                    onGestureSelected: (gesture) {
+                      // Trigger gesture manually
+                      final event = GestureEvent.create(
+                        type: gesture,
+                        x: 0.5,
+                        y: 0.5,
+                      );
+                      _controller.sendManualGesture(event);
+                      StatsService.instance.recordGesture();
+                    },
+                  );
+                },
+              ),
             ),
-            
-            // UI Overlay
-            Positioned.fill(
-              child: _buildUIOverlay(),
-            ),
+
+            // Onboarding Overlay
+            if (_showOnboarding)
+              Positioned.fill(
+                child: OnboardingOverlay(
+                  onComplete: () {
+                    if (mounted) setState(() => _showOnboarding = false);
+                  },
+                ),
+              ),
           ],
         ),
       ),
     );
   }
-  
+
   Widget _buildTouchCanvas() {
     return Consumer<CanvasController>(
       builder: (context, controller, child) {
@@ -86,9 +167,9 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
             final screenSize = MediaQuery.of(context).size;
             controller.onTouchDown(event.localPosition, screenSize);
             controller.onMultiTouchUpdate(
-              event.pointer, 
-              event.localPosition, 
-              true, 
+              event.pointer,
+              event.localPosition,
+              true,
               screenSize,
             );
           },
@@ -100,9 +181,9 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
             final screenSize = MediaQuery.of(context).size;
             controller.onTouchUp(event.localPosition, screenSize);
             controller.onMultiTouchUpdate(
-              event.pointer, 
-              event.localPosition, 
-              false, 
+              event.pointer,
+              event.localPosition,
+              false,
               screenSize,
             );
           },
@@ -124,12 +205,12 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
       },
     );
   }
-  
+
   Widget _buildEffectsLayer() {
     return Consumer<CanvasController>(
       builder: (context, controller, child) {
         final screenSize = MediaQuery.of(context).size;
-        
+
         return Stack(
           children: [
             // Glow trail for active touch
@@ -138,7 +219,7 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
                 points: controller.touchTrail,
                 isFromPartner: false,
               ),
-            
+
             // Ripple effects
             ...controller.rippleEffects.asMap().entries.map((entry) {
               final touch = entry.value;
@@ -153,7 +234,7 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
                 onComplete: () => controller.removeRipple(touch),
               );
             }),
-            
+
             // Gesture effects
             ...controller.gestureEffects.asMap().entries.map((entry) {
               final gesture = entry.value;
@@ -164,7 +245,7 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
                 onComplete: () => controller.removeGestureEffect(gesture),
               );
             }),
-            
+
             // Partner touch ripples
             ...controller.partnerTouches.asMap().entries.map((entry) {
               final touch = entry.value;
@@ -179,7 +260,7 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
                 maxRadius: 120,
               );
             }),
-            
+
             // Partner gesture effects
             ...controller.partnerGestures.asMap().entries.map((entry) {
               final gesture = entry.value;
@@ -189,7 +270,7 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
                 screenSize: screenSize,
               );
             }),
-            
+
             // Touch point indicator
             if (controller.touchTrail.isNotEmpty)
               TouchPointIndicator(
@@ -202,176 +283,47 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
       },
     );
   }
-  
-  Widget _buildUIOverlay() {
-    return Consumer<CanvasController>(
-      builder: (context, controller, child) {
-        return SafeArea(
-          child: Column(
-            children: [
-              // Top bar
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // App logo
-                    const Text(
-                      'Tether',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    
-                    // Connection status
-                    ConnectionStatus(
-                      isConnected: controller.isConnected,
-                      isPartnerOnline: controller.isPartnerOnline,
-                      partnerName: 'Partner',
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Instructions (fade out)
-              AnimatedOpacity(
-                opacity: _showInstructions ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 500),
-                child: _buildInstructions(),
-              ),
-              
-              const Spacer(),
-              
-              // Demo mode indicator
-              if (SocketService.instance.isDemoMode)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: GlassCard(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    borderRadius: 12,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.play_circle_outline,
-                          color: AppColors.info,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Demo Mode - Touches echo back',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-  
-  Widget _buildInstructions() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: GlassCard(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Touch Gestures',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildInstructionRow('👆 Tap', 'Send a quick touch'),
-            _buildInstructionRow('👆👆 Double Tap', 'Send love ❤️'),
-            _buildInstructionRow('👆⬆️ Swipe Up', 'Virtual high-five 🖐️'),
-            _buildInstructionRow('🔄 Circle', 'Calming touch ✨'),
-            _buildInstructionRow('👌 Pinch', 'Playful pinch'),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildInstructionRow(String gesture, String description) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              gesture,
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              description,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// Custom painter for touch trail
 class _TouchTrailPainter extends CustomPainter {
   final List<Offset> points;
   final bool isLongPressing;
-  
-  _TouchTrailPainter({
-    required this.points,
-    required this.isLongPressing,
-  });
+
+  _TouchTrailPainter({required this.points, required this.isLongPressing});
 
   @override
   void paint(Canvas canvas, Size size) {
     if (points.isEmpty) return;
-    
+
     // Draw subtle trail dots
     for (int i = 0; i < points.length; i++) {
       final opacity = (i + 1) / points.length * 0.3;
       final paint = Paint()
-        ..color = Color.fromRGBO(AppColors.primary.red, AppColors.primary.green, AppColors.primary.blue, opacity)
+        ..color = Color.fromRGBO(
+          AppColors.primary.red,
+          AppColors.primary.green,
+          AppColors.primary.blue,
+          opacity,
+        )
         ..style = PaintingStyle.fill;
-      
+
       canvas.drawCircle(points[i], 3, paint);
     }
-    
+
     // Draw long press indicator
     if (isLongPressing && points.isNotEmpty) {
       final lastPoint = points.last;
       final longPressPaint = Paint()
-        ..color = Color.fromRGBO(AppColors.primary.red, AppColors.primary.green, AppColors.primary.blue, 0.3)
+        ..color = Color.fromRGBO(
+          AppColors.primary.red,
+          AppColors.primary.green,
+          AppColors.primary.blue,
+          0.3,
+        )
         ..style = PaintingStyle.fill
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
-      
+
       canvas.drawCircle(lastPoint, 40, longPressPaint);
     }
   }
@@ -379,6 +331,6 @@ class _TouchTrailPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _TouchTrailPainter oldDelegate) {
     return oldDelegate.points.length != points.length ||
-           oldDelegate.isLongPressing != isLongPressing;
+        oldDelegate.isLongPressing != isLongPressing;
   }
 }

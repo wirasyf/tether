@@ -30,8 +30,16 @@ dependencies:
   uuid: ^4.5.1
   shared_preferences: ^2.3.4
   
+  # Authentication
+  firebase_auth: ^5.5.1
+  google_sign_in: ^6.2.2
+  
+  # Push Notifications
+  firebase_messaging: ^15.2.4
+  
   # Home Screen Widget
   home_widget: ^0.7.0
+  lottie: ^3.3.2
 
 dev_dependencies:
   flutter_test:
@@ -42,4 +50,4 @@ flutter:
   uses-material-design: true
   
   assets:
-    - assets/images/
+    - assets/animations/

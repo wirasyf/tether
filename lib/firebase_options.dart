@@ -32,50 +32,62 @@ class DefaultFirebaseOptions {
   static const String _databaseURL = 'https://tether-app-e4d6d-default-rtdb.asia-southeast1.firebasedatabase.app';
   static const String _projectId = 'tether-app-e4d6d';
   
-  // Web config - You need to add a web app in Firebase Console and get these values
+
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyC_PLACEHOLDER_WEB_API_KEY',
-    appId: '1:PLACEHOLDER:web:PLACEHOLDER',
-    messagingSenderId: 'PLACEHOLDER',
-    projectId: _projectId,
-    databaseURL: _databaseURL,
-    authDomain: '$_projectId.firebaseapp.com',
+    apiKey: 'AIzaSyA8cH0Dd62MZ9Q6gz90XmUb8tuTkcNHXo0',
+    appId: '1:595138255070:web:fc888a4e506a4087c1ca4f',
+    messagingSenderId: '595138255070',
+    projectId: 'tether-app-e4d6d',
+    authDomain: 'tether-app-e4d6d.firebaseapp.com',
+    databaseURL: 'https://tether-app-e4d6d-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'tether-app-e4d6d.firebasestorage.app',
+    measurementId: 'G-1ZF4JESP67',
+  );
+
+  // Web config - You need to add a web app in Firebase Console and get these values
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyD_b5rpvQrHXamLdax35APAyg4tbJxmKWc',
+    appId: '1:595138255070:android:63f4abe8f3d45a42c1ca4f',
+    messagingSenderId: '595138255070',
+    projectId: 'tether-app-e4d6d',
+    databaseURL: 'https://tether-app-e4d6d-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'tether-app-e4d6d.firebasestorage.app',
   );
 
   // Android config - You need to add an Android app and download google-services.json
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyC_PLACEHOLDER_ANDROID_API_KEY',
-    appId: '1:PLACEHOLDER:android:PLACEHOLDER',
-    messagingSenderId: 'PLACEHOLDER',
-    projectId: _projectId,
-    databaseURL: _databaseURL,
-  );
 
-  // iOS config
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyC_PLACEHOLDER_IOS_API_KEY',
-    appId: '1:PLACEHOLDER:ios:PLACEHOLDER',
-    messagingSenderId: 'PLACEHOLDER',
-    projectId: _projectId,
-    databaseURL: _databaseURL,
+    apiKey: 'AIzaSyBE2TOcfn2vHMsZPaRtfc6iRQAYVVhwwFk',
+    appId: '1:595138255070:ios:e37a4ebd3073f4c1c1ca4f',
+    messagingSenderId: '595138255070',
+    projectId: 'tether-app-e4d6d',
+    databaseURL: 'https://tether-app-e4d6d-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'tether-app-e4d6d.firebasestorage.app',
     iosBundleId: 'com.example.tether',
   );
 
+  // iOS config
+
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyC_PLACEHOLDER_MACOS_API_KEY',
-    appId: '1:PLACEHOLDER:macos:PLACEHOLDER',
-    messagingSenderId: 'PLACEHOLDER',
-    projectId: _projectId,
-    databaseURL: _databaseURL,
+    apiKey: 'AIzaSyBE2TOcfn2vHMsZPaRtfc6iRQAYVVhwwFk',
+    appId: '1:595138255070:ios:e37a4ebd3073f4c1c1ca4f',
+    messagingSenderId: '595138255070',
+    projectId: 'tether-app-e4d6d',
+    databaseURL: 'https://tether-app-e4d6d-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'tether-app-e4d6d.firebasestorage.app',
     iosBundleId: 'com.example.tether',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyC_PLACEHOLDER_WINDOWS_API_KEY',
-    appId: '1:PLACEHOLDER:windows:PLACEHOLDER',
-    messagingSenderId: 'PLACEHOLDER',
-    projectId: _projectId,
-    databaseURL: _databaseURL,
+    apiKey: 'AIzaSyA8cH0Dd62MZ9Q6gz90XmUb8tuTkcNHXo0',
+    appId: '1:595138255070:web:95767dc4e0476172c1ca4f',
+    messagingSenderId: '595138255070',
+    projectId: 'tether-app-e4d6d',
+    authDomain: 'tether-app-e4d6d.firebaseapp.com',
+    databaseURL: 'https://tether-app-e4d6d-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'tether-app-e4d6d.firebasestorage.app',
+    measurementId: 'G-2EKZYPKNG7',
   );
 
   static const FirebaseOptions linux = FirebaseOptions(

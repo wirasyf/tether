@@ -10,26 +10,26 @@ import '../../models/gesture_type.dart';
 class GhostTouchService extends ChangeNotifier {
   final StorageService _storageService;
   final HapticService _hapticService;
-  
+
   bool _isReplaying = false;
   int _pendingCount = 0;
   List<TouchEvent> _pendingTouches = [];
   List<GestureEvent> _pendingGestures = [];
-  
+
   // Callbacks for UI to display effects
   Function(TouchEvent)? onReplayTouch;
   Function(GestureEvent)? onReplayGesture;
-  
+
   GhostTouchService({
     required StorageService storageService,
     required HapticService hapticService,
   }) : _storageService = storageService,
        _hapticService = hapticService;
-  
+
   bool get isReplaying => _isReplaying;
   int get pendingCount => _pendingCount;
   bool get hasPendingTouches => _pendingCount > 0;
-  
+
   /// Load pending ghost touches from storage
   Future<void> loadPendingTouches() async {
     _pendingTouches = await _storageService.getGhostTouches();
@@ -37,32 +37,32 @@ class GhostTouchService extends ChangeNotifier {
     _pendingCount = _pendingTouches.length + _pendingGestures.length;
     notifyListeners();
   }
-  
+
   /// Start replaying all pending ghost touches
   Future<void> startReplay() async {
     if (_isReplaying || _pendingCount == 0) return;
-    
+
     _isReplaying = true;
     notifyListeners();
-    
+
     // Notify user that ghost touches are being replayed
     await _hapticService.ghostTouchNotify();
-    
+
     // Sort all events by timestamp
     final allEvents = <({DateTime time, dynamic event, bool isGesture})>[];
-    
+
     for (var touch in _pendingTouches) {
       allEvents.add((time: touch.timestamp, event: touch, isGesture: false));
     }
     for (var gesture in _pendingGestures) {
       allEvents.add((time: gesture.timestamp, event: gesture, isGesture: true));
     }
-    
+
     allEvents.sort((a, b) => a.time.compareTo(b.time));
-    
+
     // Replay with timing
     DateTime? lastEventTime;
-    
+
     for (var record in allEvents) {
       // Calculate delay between events
       if (lastEventTime != null) {
@@ -75,7 +75,7 @@ class GhostTouchService extends ChangeNotifier {
         delay = Duration(milliseconds: delay.inMilliseconds ~/ 2);
         await Future.delayed(delay);
       }
-      
+
       // Replay the event
       if (record.isGesture) {
         final gesture = record.event as GestureEvent;
@@ -86,20 +86,20 @@ class GhostTouchService extends ChangeNotifier {
         onReplayTouch?.call(touch.copyWith(isFromPartner: true));
         _triggerTouchHaptic(touch.type);
       }
-      
+
       lastEventTime = record.time;
     }
-    
+
     // Clear stored ghost touches
     await _storageService.clearGhostTouches();
-    
+
     _pendingTouches.clear();
     _pendingGestures.clear();
     _pendingCount = 0;
     _isReplaying = false;
     notifyListeners();
   }
-  
+
   void _triggerTouchHaptic(TouchType type) {
     switch (type) {
       case TouchType.tap:
@@ -119,7 +119,7 @@ class GhostTouchService extends ChangeNotifier {
         break;
     }
   }
-  
+
   void _triggerGestureHaptic(GestureType type) {
     switch (type) {
       case GestureType.doubleTap:
@@ -134,9 +134,24 @@ class GhostTouchService extends ChangeNotifier {
       case GestureType.pinch:
         _hapticService.pinchSharp();
         break;
+      case GestureType.hug:
+        _hapticService.warmHug();
+        break;
+      case GestureType.kiss:
+        _hapticService.doubleTapLove();
+        break;
+      case GestureType.heartbeat:
+        _hapticService.heartbeat();
+        break;
+      case GestureType.thinkingOfYou:
+        _hapticService.thinkingOfYou();
+        break;
+      case GestureType.goodnight:
+        _hapticService.circleCalm();
+        break;
     }
   }
-  
+
   /// Cancel any ongoing replay
   void cancelReplay() {
     _isReplaying = false;
@@ -149,7 +164,7 @@ class GhostTouchBanner extends StatelessWidget {
   final int pendingCount;
   final bool isReplaying;
   final VoidCallback onPlayPressed;
-  
+
   const GhostTouchBanner({
     super.key,
     required this.pendingCount,
@@ -162,7 +177,7 @@ class GhostTouchBanner extends StatelessWidget {
     if (pendingCount == 0 && !isReplaying) {
       return const SizedBox.shrink();
     }
-    
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -196,8 +211,8 @@ class GhostTouchBanner extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isReplaying 
-                      ? 'Playing Ghost Touches...' 
+                  isReplaying
+                      ? 'Playing Ghost Touches...'
                       : 'Ghost Touches Waiting',
                   style: const TextStyle(
                     color: Colors.white,

@@ -5,15 +5,18 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/haptic_service.dart';
-import 'core/services/socket_service.dart';
 import 'core/services/storage_service.dart';
 import 'core/services/settings_service.dart';
+import 'core/services/stats_service.dart';
+import 'core/services/theme_service.dart';
+import 'core/services/achievement_service.dart';
+import 'core/services/auth_service.dart';
 import 'features/pairing/pairing_screen.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -23,10 +26,10 @@ void main() async {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
-  
+
   // Enable edge-to-edge
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  
+
   // Initialize Firebase
   try {
     await Firebase.initializeApp(
@@ -35,12 +38,16 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase init failed, using demo mode: $e');
   }
-  
-  // Initialize services
+
+  // Initialize core services
   await StorageService.instance.initialize();
   await HapticService.instance.initialize();
   await SettingsService.instance.initialize();
-  
+  await StatsService.instance.initialize();
+  await ThemeService.instance.initialize();
+  await AchievementService.instance.initialize();
+  await AuthService.instance.initialize();
+
   runApp(const TetherApp());
 }
 
