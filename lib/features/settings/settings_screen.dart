@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/stats_service.dart';
 import '../../core/services/storage_service.dart';
@@ -82,6 +83,14 @@ class SettingsScreen extends StatelessWidget {
                 _buildSectionTitle('Actions'),
                 const SizedBox(height: 16),
                 _buildActions(context),
+
+                // Debug section (only in debug mode)
+                if (kDebugMode) ...[
+                  const SizedBox(height: 32),
+                  _buildSectionTitle('Debug Info'),
+                  const SizedBox(height: 16),
+                  _buildDebugSection(),
+                ],
 
                 const SizedBox(height: 48),
               ],
@@ -398,136 +407,198 @@ class SettingsScreen extends StatelessWidget {
 
   Widget _buildThemePicker() {
     final currentTheme = ThemeService.instance.theme;
+    final themes = AppThemeType.values;
 
     return GlassCard(
       enableGlow: false,
       padding: const EdgeInsets.all(16),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: AppThemeType.values.map((theme) {
-          final isSelected = theme == currentTheme;
-          final color = Color(theme.primaryColorValue);
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Calculate 3 columns with spacing
+          const spacing = 12.0;
 
-          return GestureDetector(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              ThemeService.instance.setTheme(theme);
-            },
-            child: Container(
-              width: 90,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? color.withValues(alpha: 0.2)
-                    : AppColors.surface.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected
-                      ? color
-                      : Colors.white.withValues(alpha: 0.1),
-                  width: isSelected ? 2 : 1,
-                ),
-              ),
-              child: Column(
+          return Column(
+            children: [
+              // First row (3 items)
+              Row(
                 children: [
-                  Text(theme.emoji, style: const TextStyle(fontSize: 24)),
-                  const SizedBox(height: 6),
-                  Text(
-                    theme.displayName,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: isSelected ? color : AppColors.textSecondary,
-                    ),
-                  ),
+                  for (int i = 0; i < 3 && i < themes.length; i++) ...[
+                    if (i > 0) const SizedBox(width: spacing),
+                    Expanded(child: _buildThemeItem(themes[i], currentTheme)),
+                  ],
                 ],
               ),
-            ),
+              if (themes.length > 3) ...[
+                const SizedBox(height: 12),
+                // Second row (remaining items)
+                Row(
+                  children: [
+                    for (int i = 3; i < themes.length; i++) ...[
+                      if (i > 3) const SizedBox(width: spacing),
+                      Expanded(child: _buildThemeItem(themes[i], currentTheme)),
+                    ],
+                    // Fill remaining columns with empty expanded widgets
+                    for (int i = themes.length; i < 6; i++) ...[
+                      const SizedBox(width: spacing),
+                      const Expanded(child: SizedBox()),
+                    ],
+                  ],
+                ),
+              ],
+            ],
           );
-        }).toList(),
+        },
+      ),
+    );
+  }
+
+  Widget _buildThemeItem(AppThemeType theme, AppThemeType currentTheme) {
+    final isSelected = theme == currentTheme;
+    final color = Color(theme.primaryColorValue);
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        ThemeService.instance.setTheme(theme);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.2)
+              : AppColors.surface.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Colors.white.withValues(alpha: 0.1),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(theme.emoji, style: const TextStyle(fontSize: 24)),
+            const SizedBox(height: 6),
+            Text(
+              theme.displayName,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? color : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTouchColorPicker() {
     final currentColor = ThemeService.instance.touchColor;
+    final options = TouchColorOption.values;
 
     return GlassCard(
       enableGlow: false,
       padding: const EdgeInsets.all(16),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: TouchColorOption.values.map((option) {
-          final isSelected = option == currentColor;
-          final color = Color(option.colorValue);
-
-          return GestureDetector(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              ThemeService.instance.setTouchColor(option);
-            },
-            child: Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primary
-                      : Colors.white.withValues(alpha: 0.1),
-                  width: isSelected ? 2 : 1,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: option == TouchColorOption.rainbow
-                          ? const LinearGradient(
-                              colors: [
-                                Colors.red,
-                                Colors.orange,
-                                Colors.yellow,
-                                Colors.green,
-                                Colors.blue,
-                                Colors.purple,
-                              ],
-                            )
-                          : null,
-                      color: option != TouchColorOption.rainbow ? color : null,
-                      boxShadow: [
-                        BoxShadow(
-                          color: color.withValues(alpha: 0.4),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    option.displayName.split(' ').first,
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.textMuted,
-                    ),
-                    textAlign: TextAlign.center,
+      child: Column(
+        children: [
+          // First row (4 items)
+          Row(
+            children: [
+              for (int i = 0; i < 4 && i < options.length; i++) ...[
+                if (i > 0) const SizedBox(width: 12),
+                Expanded(child: _buildTouchColorItem(options[i], currentColor)),
+              ],
+            ],
+          ),
+          if (options.length > 4) ...[
+            const SizedBox(height: 12),
+            // Second row (remaining items)
+            Row(
+              children: [
+                for (int i = 4; i < options.length; i++) ...[
+                  if (i > 4) const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildTouchColorItem(options[i], currentColor),
                   ),
                 ],
-              ),
+                // Fill remaining columns with empty expanded widgets
+                for (int i = options.length; i < 8; i++) ...[
+                  const SizedBox(width: 12),
+                  const Expanded(child: SizedBox()),
+                ],
+              ],
             ),
-          );
-        }).toList(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTouchColorItem(
+    TouchColorOption option,
+    TouchColorOption currentColor,
+  ) {
+    final isSelected = option == currentColor;
+    final color = Color(option.colorValue);
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        ThemeService.instance.setTouchColor(option);
+      },
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary
+                  : Colors.white.withValues(alpha: 0.1),
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: option == TouchColorOption.rainbow
+                      ? const LinearGradient(
+                          colors: [
+                            Colors.red,
+                            Colors.orange,
+                            Colors.yellow,
+                            Colors.green,
+                            Colors.blue,
+                            Colors.purple,
+                          ],
+                        )
+                      : null,
+                  color: option != TouchColorOption.rainbow ? color : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                option.displayName.split(' ').first,
+                style: TextStyle(
+                  fontSize: 9,
+                  color: isSelected ? AppColors.primary : AppColors.textMuted,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -748,5 +819,148 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildDebugSection() {
+    final socketService = SocketService.instance;
+    final storageService = StorageService.instance;
+
+    return GlassCard(
+      enableGlow: false,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with debug icon
+          Row(
+            children: [
+              Icon(Icons.bug_report, color: Colors.orange, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Debug Mode Active',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Connection info
+          _buildDebugRow(
+            'Socket',
+            socketService.isConnected ? 'Connected' : 'Disconnected',
+            socketService.isConnected ? Colors.green : Colors.red,
+          ),
+          _buildDebugRow(
+            'Partner',
+            socketService.isPartnerOnline ? 'Online' : 'Offline',
+            socketService.isPartnerOnline ? Colors.green : Colors.amber,
+          ),
+          _buildDebugRow(
+            'Mode',
+            socketService.isDemoMode ? 'Demo Mode' : 'Firebase',
+            socketService.isDemoMode ? Colors.amber : Colors.green,
+          ),
+
+          const Divider(height: 24),
+
+          // IDs
+          _buildDebugInfoRow('Room ID', storageService.getRoomId() ?? 'None'),
+          _buildDebugInfoRow(
+            'User ID',
+            _truncateId(storageService.getUserId()),
+          ),
+          _buildDebugInfoRow(
+            'Pairing Code',
+            storageService.getPairingCode() ?? 'None',
+          ),
+
+          const SizedBox(height: 16),
+
+          // Tip
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.lightbulb_outline, color: Colors.orange, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Tap the 🐛 icon on main screen to see live sync stats',
+                    style: TextStyle(color: Colors.orange, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDebugRow(String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDebugInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _truncateId(String? id) {
+    if (id == null) return 'None';
+    if (id.length <= 12) return id;
+    return '${id.substring(0, 12)}...';
   }
 }

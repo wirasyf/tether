@@ -12,6 +12,7 @@ class StorageService {
   static const String _userIdKey = 'user_id';
   static const String _partnerIdKey = 'partner_id';
   static const String _roomIdKey = 'room_id';
+  static const String _pairingCodeKey = 'pairing_code';
 
   SharedPreferences? _prefs;
 
@@ -108,6 +109,11 @@ class StorageService {
     return _prefs?.getString(_partnerIdKey);
   }
 
+  /// Clear partner ID
+  Future<void> clearPartnerId() async {
+    await _prefs?.remove(_partnerIdKey);
+  }
+
   /// Save room ID
   Future<void> setRoomId(String id) async {
     await _prefs?.setString(_roomIdKey, id);
@@ -118,6 +124,28 @@ class StorageService {
     return _prefs?.getString(_roomIdKey);
   }
 
+  /// Clear room ID
+  Future<void> clearRoomId() async {
+    await _prefs?.remove(_roomIdKey);
+  }
+
+  // ============ Pairing Code ============
+
+  /// Save persistent pairing code
+  Future<void> setPairingCode(String code) async {
+    await _prefs?.setString(_pairingCodeKey, code);
+  }
+
+  /// Get persistent pairing code
+  String? getPairingCode() {
+    return _prefs?.getString(_pairingCodeKey);
+  }
+
+  /// Clear pairing code
+  Future<void> clearPairingCode() async {
+    await _prefs?.remove(_pairingCodeKey);
+  }
+
   /// Check if user has been paired
   bool isPaired() {
     return getPartnerId() != null && getRoomId() != null;
@@ -126,9 +154,5 @@ class StorageService {
   /// Clear all data (for logout/unpair)
   Future<void> clearAll() async {
     await _prefs?.clear();
-  }
-
-  Future<void> clearRoomId() async {
-    await _prefs?.remove(_roomIdKey);
   }
 }

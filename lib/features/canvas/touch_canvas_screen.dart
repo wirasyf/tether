@@ -17,6 +17,7 @@ import '../../shared/widgets/animated_background.dart';
 import '../../shared/widgets/canvas_overlay.dart';
 import '../../shared/widgets/onboarding_overlay.dart';
 import '../../shared/widgets/heartbeat_button.dart';
+import '../../shared/widgets/debug_overlay.dart';
 import 'canvas_controller.dart';
 import 'widgets/touch_effects.dart';
 import '../gestures/gesture_effects.dart';
@@ -102,60 +103,63 @@ class _TouchCanvasScreenState extends State<TouchCanvasScreen> {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: _controller,
-      child: Scaffold(
-        body: Stack(
-          children: [
-            // Animated background
-            const Positioned.fill(child: AnimatedBackground()),
+      child: DebugOverlay(
+        child: Scaffold(
+          body: Stack(
+            children: [
+              // Animated background
+              const Positioned.fill(child: AnimatedBackground()),
 
-            // Touch canvas
-            Positioned.fill(child: _buildTouchCanvas()),
+              // Touch canvas
+              Positioned.fill(child: _buildTouchCanvas()),
 
-            // Touch effects layer
-            Positioned.fill(child: _buildEffectsLayer()),
+              // Touch effects layer
+              Positioned.fill(child: _buildEffectsLayer()),
 
-            // Heartbeat Received Overlay
-            if (_showHeartbeatOverlay)
-              Positioned.fill(
-                child: HeartbeatReceivedOverlay(
-                  onComplete: () {
-                    if (mounted) setState(() => _showHeartbeatOverlay = false);
-                  },
-                ),
-              ),
-
-            // New Canvas Overlay with all features
-            Positioned.fill(
-              child: Consumer<CanvasController>(
-                builder: (context, controller, _) {
-                  return CanvasOverlay(
-                    isConnected: controller.isConnected,
-                    isPartnerOnline: controller.isPartnerOnline,
-                    onGestureSelected: (gesture) {
-                      // Trigger gesture manually
-                      final event = GestureEvent.create(
-                        type: gesture,
-                        x: 0.5,
-                        y: 0.5,
-                      );
-                      _controller.sendManualGesture(event);
-                      StatsService.instance.recordGesture();
+              // Heartbeat Received Overlay
+              if (_showHeartbeatOverlay)
+                Positioned.fill(
+                  child: HeartbeatReceivedOverlay(
+                    onComplete: () {
+                      if (mounted)
+                        setState(() => _showHeartbeatOverlay = false);
                     },
-                  );
-                },
-              ),
-            ),
+                  ),
+                ),
 
-            // Onboarding Overlay
-            if (_showOnboarding)
+              // New Canvas Overlay with all features
               Positioned.fill(
-                child: OnboardingOverlay(
-                  onComplete: () {
-                    if (mounted) setState(() => _showOnboarding = false);
+                child: Consumer<CanvasController>(
+                  builder: (context, controller, _) {
+                    return CanvasOverlay(
+                      isConnected: controller.isConnected,
+                      isPartnerOnline: controller.isPartnerOnline,
+                      onGestureSelected: (gesture) {
+                        // Trigger gesture manually
+                        final event = GestureEvent.create(
+                          type: gesture,
+                          x: 0.5,
+                          y: 0.5,
+                        );
+                        _controller.sendManualGesture(event);
+                        StatsService.instance.recordGesture();
+                      },
+                    );
                   },
                 ),
               ),
-          ],
+
+              // Onboarding Overlay
+              if (_showOnboarding)
+                Positioned.fill(
+                  child: OnboardingOverlay(
+                    onComplete: () {
+                      if (mounted) setState(() => _showOnboarding = false);
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -11,6 +11,7 @@ import 'core/services/stats_service.dart';
 import 'core/services/theme_service.dart';
 import 'core/services/achievement_service.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/pairing_service.dart';
 import 'features/pairing/pairing_screen.dart';
 import 'firebase_options.dart';
 
@@ -47,6 +48,9 @@ void main() async {
   await ThemeService.instance.initialize();
   await AchievementService.instance.initialize();
   await AuthService.instance.initialize();
+
+  // Pre-load pairing code
+  await PairingService.instance.getOrCreatePairingCode();
 
   runApp(const TetherApp());
 }

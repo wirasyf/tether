@@ -64,8 +64,8 @@ class SocketService {
     }
   }
 
-  /// Connect to a room
-  Future<void> connect({required String roomId}) async {
+  /// Connect to a room with retry mechanism
+  Future<void> connect({required String roomId, int retryCount = 0}) async {
     _roomId = roomId;
 
     // Load or generate persistent user ID
@@ -89,8 +89,18 @@ class SocketService {
       _isConnected = true;
       debugPrint('Connected to room: $roomId with user: $_myId');
     } catch (e) {
-      debugPrint('Failed to connect to room: $e');
-      // Fall back to demo mode
+      debugPrint('Failed to connect to room (attempt ${retryCount + 1}): $e');
+
+      // Retry with exponential backoff (max 3 retries)
+      if (retryCount < 3) {
+        final delay = Duration(milliseconds: 500 * (retryCount + 1));
+        debugPrint('Retrying in ${delay.inMilliseconds}ms...');
+        await Future.delayed(delay);
+        return connect(roomId: roomId, retryCount: retryCount + 1);
+      }
+
+      // Fall back to demo mode after all retries failed
+      debugPrint('All retries failed. Falling back to demo mode.');
       _isDemoMode = true;
       _isConnected = true;
       _startDemoEchoLoop();

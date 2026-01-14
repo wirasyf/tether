@@ -40,6 +40,9 @@ dependencies:
   # Home Screen Widget
   home_widget: ^0.7.0
   lottie: ^3.1.3
+  
+  # Share functionality
+  share_plus: ^10.1.4
 
 dev_dependencies:
   flutter_test:
