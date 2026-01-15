@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:math' as math;
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/photo_memory_service.dart';
 import '../../shared/widgets/glass_card.dart';
@@ -29,10 +31,9 @@ class _PhotoMemoryScreenState extends State<PhotoMemoryScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => _AddPhotoSheet(
         captionController: _captionController,
-        onAdd: (url, caption) {
-          PhotoMemoryService.instance.addPhoto(url, caption: caption);
+        onUpload: (data, caption) async {
+          await PhotoMemoryService.instance.uploadPhoto(data, caption: caption);
           _captionController.clear();
-          Navigator.pop(context);
         },
       ),
     );
@@ -89,13 +90,20 @@ class _PhotoMemoryScreenState extends State<PhotoMemoryScreen> {
                     childAspectRatio: 0.75,
                   ),
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _PolaroidCard(
-                      photo: photos[index],
-                      rotation:
-                          (index % 2 == 0 ? -3 : 3) +
-                          (math.Random(index).nextDouble() * 4 - 2),
-                      onTap: () => _showPhotoDetail(photos[index]),
-                    ),
+                    (context, index) =>
+                        _PolaroidCard(
+                              photo: photos[index],
+                              rotation:
+                                  (index % 2 == 0 ? -3 : 3) +
+                                  (math.Random(index).nextDouble() * 4 - 2),
+                              onTap: () => _showPhotoDetail(photos[index]),
+                            )
+                            .animate(delay: (100 * index).ms)
+                            .fade(duration: 500.ms)
+                            .scale(
+                              begin: const Offset(0.8, 0.8),
+                              curve: Curves.easeOutBack,
+                            ),
                     childCount: photos.length,
                   ),
                 ),
@@ -188,9 +196,10 @@ class _PolaroidCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 15,
+                spreadRadius: 2,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -419,25 +428,99 @@ class _PhotoDetailDialog extends StatelessWidget {
 /// Add photo bottom sheet
 class _AddPhotoSheet extends StatefulWidget {
   final TextEditingController captionController;
-  final Function(String url, String? caption) onAdd;
+  final Function(Uint8List data, String? caption) onUpload;
 
-  const _AddPhotoSheet({required this.captionController, required this.onAdd});
+  const _AddPhotoSheet({
+    required this.captionController,
+    required this.onUpload,
+  });
 
   @override
   State<_AddPhotoSheet> createState() => _AddPhotoSheetState();
 }
 
 class _AddPhotoSheetState extends State<_AddPhotoSheet> {
-  final _urlController = TextEditingController();
+  bool _isUploading = false;
 
   @override
   void dispose() {
-    _urlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() => _isUploading = true);
+
+        final bytes = await image.readAsBytes();
+
+        // Check size (limit to roughly 5MB)
+        if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Image too large (max 5MB)')),
+            );
+            setState(() => _isUploading = false);
+            return;
+          }
+        }
+
+        await widget.onUpload(
+          bytes,
+          widget.captionController.text.isEmpty
+              ? null
+              : widget.captionController.text,
+        );
+
+        if (mounted) {
+          setState(() => _isUploading = false);
+          Navigator.pop(context);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      if (mounted) {
+        setState(() => _isUploading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isUploading) {
+      return Container(
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 20),
+            const Text('Uploading photo...'),
+            const SizedBox(height: 10),
+            Text(
+              'Please wait while we save your memory.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -472,20 +555,30 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            GlassCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                controller: _urlController,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Paste image URL...',
-                  hintStyle: TextStyle(color: AppColors.textMuted),
-                  border: InputBorder.none,
-                  icon: Icon(Icons.link, color: AppColors.textMuted),
+
+            // Photo Options
+            Row(
+              children: [
+                Expanded(
+                  child: _buildOption(
+                    icon: Icons.camera_alt,
+                    label: 'Camera',
+                    onTap: () => _pickImage(ImageSource.camera),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildOption(
+                    icon: Icons.photo_library,
+                    label: 'Gallery',
+                    onTap: () => _pickImage(ImageSource.gallery),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+
+            const SizedBox(height: 20),
+
             GlassCard(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
@@ -499,38 +592,39 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (_urlController.text.isNotEmpty) {
-                    widget.onAdd(
-                      _urlController.text,
-                      widget.captionController.text.isEmpty
-                          ? null
-                          : widget.captionController.text,
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Add to Memory Wall',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 32, color: AppColors.primary),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 12),
           ],
         ),
       ),

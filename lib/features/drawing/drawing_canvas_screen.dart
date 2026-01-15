@@ -1,5 +1,11 @@
+import 'dart:ui' as ui;
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:gal/gal.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/drawing_service.dart';
 import '../../shared/widgets/glass_card.dart';
@@ -13,17 +19,147 @@ class DrawingCanvasScreen extends StatefulWidget {
 }
 
 class _DrawingCanvasScreenState extends State<DrawingCanvasScreen> {
-  final List<Color> _colorOptions = [
-    const Color(0xFFFF6B9D), // Pink
-    const Color(0xFFFF4757), // Red
-    const Color(0xFFFFA502), // Orange
-    const Color(0xFFFFD93D), // Yellow
-    const Color(0xFF6BCB77), // Green
-    const Color(0xFF4ECDC4), // Teal
-    const Color(0xFF45AAF2), // Blue
-    const Color(0xFFA55EEA), // Purple
-    const Color(0xFFFFFFFF), // White
-  ];
+  Future<void> _saveCanvas() async {
+    try {
+      if (DrawingService.instance.strokes.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Canvas is empty!')));
+        }
+        return;
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Saving drawing...')));
+      }
+
+      // Create a picture recorder and canvas
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      final size = context.size ?? const Size(1080, 1920);
+
+      // Draw white background
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Paint()..color = Colors.white,
+      );
+
+      // Draw strokes
+      final painter = _DrawingPainter(strokes: DrawingService.instance.strokes);
+      painter.paint(canvas, size);
+
+      // End recording and convert to image
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(
+        size.width.toInt(),
+        size.height.toInt(),
+      );
+      final pngBytes = await img.toByteData(format: ui.ImageByteFormat.png);
+
+      if (pngBytes != null) {
+        if (kIsWeb) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Save to Gallery is only available on mobile devices',
+                ),
+              ),
+            );
+          }
+          return;
+        }
+
+        final dir = await getTemporaryDirectory();
+        final file = File(
+          '${dir.path}/drawing_${DateTime.now().millisecondsSinceEpoch}.png',
+        );
+        await file.writeAsBytes(pngBytes.buffer.asUint8List());
+
+        // Save to gallery
+        await Gal.putImage(file.path);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Saved to Gallery! 🖼️')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error saving drawing: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving: $e')));
+      }
+    }
+  }
+
+  void _showColorPicker() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text(
+          'Pick a Color',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: SingleChildScrollView(
+          child: ColorPicker(
+            pickerColor: DrawingService.instance.currentColor,
+            onColorChanged: (color) {
+              DrawingService.instance.setColor(color);
+            },
+            paletteType: PaletteType.hueWheel,
+            enableAlpha: false,
+            labelTypes: const [],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('Done', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClearDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Clear Canvas',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'This will clear all drawings. Are you sure?',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              DrawingService.instance.clearCanvas();
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[400]),
+            child: const Text('Clear', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,17 +186,12 @@ class _DrawingCanvasScreenState extends State<DrawingCanvasScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.undo, color: AppColors.textSecondary),
+            icon: Icon(Icons.download_rounded, color: AppColors.primary),
             onPressed: () {
               HapticFeedback.lightImpact();
-              DrawingService.instance.undoLastStroke();
+              _saveCanvas();
             },
-            tooltip: 'Undo',
-          ),
-          IconButton(
-            icon: Icon(Icons.delete_outline, color: AppColors.textSecondary),
-            onPressed: _showClearDialog,
-            tooltip: 'Clear All',
+            tooltip: 'Save to Gallery',
           ),
         ],
       ),
@@ -138,102 +269,119 @@ class _DrawingCanvasScreenState extends State<DrawingCanvasScreen> {
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Color picker
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _colorOptions.map((color) {
-                    final isSelected = currentColor.value == color.value;
-                    return GestureDetector(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        DrawingService.instance.setColor(color);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: isSelected ? 36 : 28,
-                        height: isSelected ? 36 : 28,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? Colors.white
-                                : Colors.transparent,
-                            width: 3,
-                          ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: color.withValues(alpha: 0.5),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-
-                // Stroke width slider
                 Row(
                   children: [
-                    Icon(Icons.lens, size: 8, color: AppColors.textMuted),
-                    Expanded(
-                      child: Slider(
-                        value: strokeWidth,
-                        min: 2,
-                        max: 20,
-                        activeColor: currentColor,
-                        inactiveColor: AppColors.textMuted.withValues(
-                          alpha: 0.3,
+                    // Color Picker
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        _showColorPicker();
+                      },
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: currentColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: currentColor.withValues(alpha: 0.5),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ],
                         ),
-                        onChanged: (value) {
-                          DrawingService.instance.setStrokeWidth(value);
-                        },
                       ),
                     ),
-                    Icon(Icons.lens, size: 20, color: AppColors.textMuted),
+                    const SizedBox(width: 16),
+
+                    // Slider
+                    Expanded(
+                      child: Container(
+                        height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: currentColor.withValues(alpha: 0.5),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            Expanded(
+                              child: SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  activeTrackColor: currentColor,
+                                  inactiveTrackColor: currentColor.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                  thumbColor: Colors.white,
+                                  trackHeight: 2, // Thinner track
+                                ),
+                                child: Slider(
+                                  value: strokeWidth,
+                                  min: 2,
+                                  max: 30,
+                                  onChanged: (value) {
+                                    DrawingService.instance.setStrokeWidth(
+                                      value,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            // Preview circle
+                            Container(
+                              width: 24,
+                              height: 24,
+                              alignment: Alignment.center,
+                              child: Container(
+                                width: strokeWidth, // Real-time preview size
+                                height: strokeWidth,
+                                decoration: BoxDecoration(
+                                  color: currentColor,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Undo Button
+                    IconButton(
+                      icon: const Icon(Icons.undo_rounded),
+                      color: AppColors.textSecondary,
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        DrawingService.instance.undoLastStroke();
+                      },
+                    ),
+
+                    // Clear Button
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      color: AppColors.error,
+                      onPressed: _showClearDialog,
+                    ),
                   ],
                 ),
               ],
             );
           },
         ),
-      ),
-    );
-  }
-
-  void _showClearDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Clear Canvas',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'This will clear all drawings. Are you sure?',
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              DrawingService.instance.clearCanvas();
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[400]),
-            child: const Text('Clear', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }

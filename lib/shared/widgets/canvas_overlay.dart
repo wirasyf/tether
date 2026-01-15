@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:tether/features/achievements/achievements_screen.dart';
 import 'package:tether/features/settings/settings_screen.dart';
 import 'package:tether/features/special_dates/special_dates_screen.dart';
+import 'package:tether/features/drawing/drawing_canvas_screen.dart';
+import 'package:tether/features/photo_memory/photo_memory_screen.dart';
 import 'dart:async';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/mood_service.dart';
@@ -309,11 +311,11 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
 
   Widget _buildActionBar(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(24),
+        color: AppColors.surface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(32),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.1),
           width: 1,
@@ -327,25 +329,94 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Left action: Mood
-          _buildCircularButton(
-            icon: Icons.emoji_emotions_outlined,
-            label: 'Mood',
-            color: AppColors.secondary,
-            onTap: () => _showMoodPicker(context),
+          // 1. Drawing
+          _buildDockItem(
+            context,
+            icon: Icons.brush_rounded,
+            label: 'Draw',
+            color: Colors.teal,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DrawingCanvasScreen()),
+            ),
           ),
 
-          // Center: Heartbeat button
-          const HeartbeatButton(),
+          // 2. Memories
+          _buildDockItem(
+            context,
+            icon: Icons.photo_library_rounded,
+            label: 'Memories',
+            color: Colors.amber,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PhotoMemoryScreen()),
+            ),
+          ),
 
-          // Right action: Send love
-          _buildCircularButton(
-            icon: Icons.send_rounded,
-            label: 'Send',
-            color: AppColors.primary,
+          // 3. Heartbeat (Center)
+          Transform.translate(
+            offset: const Offset(0, -6),
+            child: const HeartbeatButton(size: 60), // Slightly larger
+          ),
+
+          // 4. Dates
+          _buildDockItem(
+            context,
+            icon: Icons.calendar_month_rounded,
+            label: 'Dates',
+            color: AppColors.highFiveGold,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SpecialDatesScreen()),
+            ),
+          ),
+
+          // 5. Menu
+          _buildDockItem(
+            context,
+            icon: Icons.grid_view_rounded,
+            label: 'Menu',
+            color: AppColors.textSecondary,
             onTap: () => _showQuickActions(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDockItem(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textMuted,
+            ),
           ),
         ],
       ),
@@ -386,10 +457,19 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
             ),
             const SizedBox(height: 24),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
+                  _buildQuickActionItem(
+                    icon: Icons.emoji_emotions_outlined,
+                    label: 'Mood',
+                    color: AppColors.secondary,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showMoodPicker(context);
+                    },
+                  ),
                   _buildQuickActionItem(
                     icon: Icons.favorite,
                     label: 'Gesture',
@@ -402,19 +482,10 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
                   _buildQuickActionItem(
                     icon: Icons.message_rounded,
                     label: 'Message',
-                    color: AppColors.secondary,
+                    color: Colors.blueAccent,
                     onTap: () {
                       Navigator.pop(context);
                       _showMessagePicker(context);
-                    },
-                  ),
-                  _buildQuickActionItem(
-                    icon: Icons.event,
-                    label: 'Dates',
-                    color: AppColors.primary,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showSpecialDates(context);
                     },
                   ),
                 ],
@@ -442,63 +513,22 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 64,
-            height: 64,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.15),
               shape: BoxShape.circle,
               border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
             ),
-            child: Icon(icon, color: color, size: 28),
+            child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(height: 8),
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCircularButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: color.withValues(alpha: 0.3),
-                width: 1.5,
-              ),
-            ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: AppColors.textMuted,
+              color: AppColors.textSecondary,
             ),
           ),
         ],
@@ -523,14 +553,6 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
     if (gesture != null) {
       widget.onGestureSelected?.call(gesture);
     }
-  }
-
-  void _showSpecialDates(BuildContext context) {
-    HapticFeedback.lightImpact();
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SpecialDatesScreen()),
-    );
   }
 
   Future<void> _showMessagePicker(BuildContext context) async {

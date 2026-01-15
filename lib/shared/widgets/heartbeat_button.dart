@@ -6,7 +6,9 @@ import '../../core/services/heartbeat_service.dart';
 
 /// Heartbeat sharing button with animated heart and glowing effects
 class HeartbeatButton extends StatefulWidget {
-  const HeartbeatButton({super.key});
+  final double size;
+
+  const HeartbeatButton({super.key, this.size = 90.0});
 
   @override
   State<HeartbeatButton> createState() => _HeartbeatButtonState();
@@ -155,15 +157,15 @@ class _HeartbeatButtonState extends State<HeartbeatButton>
                 return Transform.scale(
                   scale: _pressAnimation.value,
                   child: SizedBox(
-                    width: 90,
-                    height: 90,
+                    width: widget.size,
+                    height: widget.size,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
                         // Outer glow ring 3
                         Container(
-                          width: 85,
-                          height: 85,
+                          width: widget.size * 0.94,
+                          height: widget.size * 0.94,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
@@ -177,8 +179,8 @@ class _HeartbeatButtonState extends State<HeartbeatButton>
 
                         // Outer glow ring 2
                         Container(
-                          width: 75,
-                          height: 75,
+                          width: widget.size * 0.83,
+                          height: widget.size * 0.83,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
@@ -192,8 +194,8 @@ class _HeartbeatButtonState extends State<HeartbeatButton>
 
                         // Outer glow ring 1
                         Container(
-                          width: 65,
-                          height: 65,
+                          width: widget.size * 0.72,
+                          height: widget.size * 0.72,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: RadialGradient(
@@ -213,8 +215,8 @@ class _HeartbeatButtonState extends State<HeartbeatButton>
                         Transform.scale(
                           scale: _pulseAnimation.value,
                           child: Container(
-                            width: 56,
-                            height: 56,
+                            width: widget.size * 0.62,
+                            height: widget.size * 0.62,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: RadialGradient(
@@ -246,9 +248,7 @@ class _HeartbeatButtonState extends State<HeartbeatButton>
                             child: Center(
                               child: Text(
                                 '❤️',
-                                style: TextStyle(
-                                  fontSize: _isPressed ? 28 : 24,
-                                ),
+                                style: TextStyle(fontSize: widget.size * 0.26),
                               ),
                             ),
                           ),

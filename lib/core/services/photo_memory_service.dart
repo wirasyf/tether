@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 /// Memory photo model
 class MemoryPhoto {
@@ -131,6 +133,25 @@ class PhotoMemoryService extends ChangeNotifier {
           .remove();
     } catch (e) {
       debugPrint('Error deleting photo: $e');
+    }
+  }
+
+  /// Upload and add a photo memory (from bytes)
+  Future<void> uploadPhoto(Uint8List data, {String? caption}) async {
+    if (_roomId == null || _myId == null) return;
+
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    // Use a simpler path struct for storage
+    final ref = FirebaseStorage.instance.ref('rooms/$_roomId/photos/$id.jpg');
+
+    try {
+      final metadata = SettableMetadata(contentType: 'image/jpeg');
+      await ref.putData(data, metadata);
+      final url = await ref.getDownloadURL();
+      await addPhoto(url, caption: caption);
+    } catch (e) {
+      debugPrint('Error uploading photo: $e');
+      rethrow;
     }
   }
 
