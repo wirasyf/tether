@@ -40,19 +40,29 @@ void main() async {
     debugPrint('Firebase init failed, using demo mode: $e');
   }
 
-  // Initialize core services
-  await StorageService.instance.initialize();
-  await HapticService.instance.initialize();
-  await SettingsService.instance.initialize();
-  await StatsService.instance.initialize();
-  await ThemeService.instance.initialize();
-  await AchievementService.instance.initialize();
-  await AuthService.instance.initialize();
+  // Initialize essential services in parallel (faster startup)
+  await Future.wait([
+    StorageService.instance.initialize(),
+    SettingsService.instance.initialize(),
+  ]);
 
-  // Pre-load pairing code
+  // Initialize haptic after storage (needs settings)
+  await HapticService.instance.initialize();
+
+  // Pre-load pairing code (essential for app function)
   await PairingService.instance.getOrCreatePairingCode();
 
   runApp(const TetherApp());
+
+  // Defer non-critical services to after first frame (faster perceived startup)
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await Future.wait([
+      StatsService.instance.initialize(),
+      ThemeService.instance.initialize(),
+      AchievementService.instance.initialize(),
+      AuthService.instance.initialize(),
+    ]);
+  });
 }
 
 class TetherApp extends StatelessWidget {

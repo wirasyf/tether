@@ -125,165 +125,172 @@ class _HeartbeatButtonState extends State<HeartbeatButton>
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: HeartbeatService.instance,
-      builder: (context, _) {
-        final isReceiving = HeartbeatService.instance.isReceiving;
+    // Use RepaintBoundary to isolate continuous animations
+    return RepaintBoundary(
+      child: ListenableBuilder(
+        listenable: HeartbeatService.instance,
+        builder: (context, _) {
+          final isReceiving = HeartbeatService.instance.isReceiving;
 
-        return GestureDetector(
-          onTapDown: (_) {
-            setState(() => _isPressed = true);
-            _startHeartbeat();
-          },
-          onTapUp: (_) {
-            setState(() => _isPressed = false);
-            _stopHeartbeat();
-          },
-          onTapCancel: () {
-            setState(() => _isPressed = false);
-            _stopHeartbeat();
-          },
-          child: AnimatedBuilder(
-            animation: Listenable.merge([
-              _pulseAnimation,
-              _glowAnimation,
-              _pressAnimation,
-            ]),
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _pressAnimation.value,
-                child: SizedBox(
-                  width: 90,
-                  height: 90,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Outer glow ring 3
-                      Container(
-                        width: 85,
-                        height: 85,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.loveRed.withValues(
-                              alpha: _glowAnimation.value * 0.2,
-                            ),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-
-                      // Outer glow ring 2
-                      Container(
-                        width: 75,
-                        height: 75,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.loveRed.withValues(
-                              alpha: _glowAnimation.value * 0.3,
-                            ),
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-
-                      // Outer glow ring 1
-                      Container(
-                        width: 65,
-                        height: 65,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              AppColors.loveRed.withValues(
-                                alpha: _isPressed ? 0.4 : 0.2,
+          return GestureDetector(
+            onTapDown: (_) {
+              setState(() => _isPressed = true);
+              _startHeartbeat();
+            },
+            onTapUp: (_) {
+              setState(() => _isPressed = false);
+              _stopHeartbeat();
+            },
+            onTapCancel: () {
+              setState(() => _isPressed = false);
+              _stopHeartbeat();
+            },
+            child: AnimatedBuilder(
+              animation: Listenable.merge([
+                _pulseAnimation,
+                _glowAnimation,
+                _pressAnimation,
+              ]),
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _pressAnimation.value,
+                  child: SizedBox(
+                    width: 90,
+                    height: 90,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Outer glow ring 3
+                        Container(
+                          width: 85,
+                          height: 85,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.loveRed.withValues(
+                                alpha: _glowAnimation.value * 0.2,
                               ),
-                              AppColors.loveRed.withValues(alpha: 0.05),
-                              Colors.transparent,
-                            ],
-                            stops: const [0.0, 0.5, 1.0],
+                              width: 1,
+                            ),
                           ),
                         ),
-                      ),
 
-                      // Main heart container
-                      Transform.scale(
-                        scale: _pulseAnimation.value,
-                        child: Container(
-                          width: 56,
-                          height: 56,
+                        // Outer glow ring 2
+                        Container(
+                          width: 75,
+                          height: 75,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.loveRed.withValues(
+                                alpha: _glowAnimation.value * 0.3,
+                              ),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+
+                        // Outer glow ring 1
+                        Container(
+                          width: 65,
+                          height: 65,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: RadialGradient(
                               colors: [
                                 AppColors.loveRed.withValues(
-                                  alpha: _isPressed ? 0.5 : 0.3,
+                                  alpha: _isPressed ? 0.4 : 0.2,
                                 ),
-                                AppColors.loveRed.withValues(
-                                  alpha: _isPressed ? 0.3 : 0.15,
+                                AppColors.loveRed.withValues(alpha: 0.05),
+                                Colors.transparent,
+                              ],
+                              stops: const [0.0, 0.5, 1.0],
+                            ),
+                          ),
+                        ),
+
+                        // Main heart container
+                        Transform.scale(
+                          scale: _pulseAnimation.value,
+                          child: Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  AppColors.loveRed.withValues(
+                                    alpha: _isPressed ? 0.5 : 0.3,
+                                  ),
+                                  AppColors.loveRed.withValues(
+                                    alpha: _isPressed ? 0.3 : 0.15,
+                                  ),
+                                ],
+                              ),
+                              border: Border.all(
+                                color: AppColors.loveRed.withValues(
+                                  alpha: _isPressed ? 0.8 : 0.5,
+                                ),
+                                width: 2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.loveRed.withValues(
+                                    alpha: _isPressed ? 0.6 : 0.3,
+                                  ),
+                                  blurRadius: _isPressed ? 25 : 15,
+                                  spreadRadius: _isPressed ? 5 : 2,
                                 ),
                               ],
                             ),
-                            border: Border.all(
-                              color: AppColors.loveRed.withValues(
-                                alpha: _isPressed ? 0.8 : 0.5,
-                              ),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.loveRed.withValues(
-                                  alpha: _isPressed ? 0.6 : 0.3,
+                            child: Center(
+                              child: Text(
+                                '❤️',
+                                style: TextStyle(
+                                  fontSize: _isPressed ? 28 : 24,
                                 ),
-                                blurRadius: _isPressed ? 25 : 15,
-                                spreadRadius: _isPressed ? 5 : 2,
                               ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              '❤️',
-                              style: TextStyle(fontSize: _isPressed ? 28 : 24),
                             ),
                           ),
                         ),
-                      ),
 
-                      // BPM indicator when receiving
-                      if (isReceiving && !_isPressed)
-                        Positioned(
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: AppColors.loveRed.withValues(alpha: 0.5),
+                        // BPM indicator when receiving
+                        if (isReceiving && !_isPressed)
+                          Positioned(
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
                               ),
-                            ),
-                            child: Text(
-                              '${HeartbeatService.instance.partnerBpm} ❤️',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.loveRed,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface.withValues(alpha: 0.9),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: AppColors.loveRed.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                '${HeartbeatService.instance.partnerBpm} ❤️',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.loveRed,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-        );
-      },
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 }

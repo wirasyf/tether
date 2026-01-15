@@ -14,6 +14,8 @@ import '../love_notes/love_notes_screen.dart';
 import '../special_dates/special_dates_screen.dart';
 import '../achievements/achievements_screen.dart';
 import '../pairing/pairing_screen.dart';
+import '../photo_memory/photo_memory_screen.dart';
+import '../drawing/drawing_canvas_screen.dart';
 
 /// Settings screen with personalization options
 class SettingsScreen extends StatelessWidget {
@@ -303,6 +305,34 @@ class SettingsScreen extends StatelessWidget {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const LoveNotesScreen()),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _buildQuickAccessButton(
+                context,
+                icon: Icons.photo_library,
+                label: 'Memories',
+                color: Colors.amber,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PhotoMemoryScreen()),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _buildQuickAccessButton(
+                context,
+                icon: Icons.brush,
+                label: 'Draw',
+                color: Colors.teal,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const DrawingCanvasScreen(),
+                  ),
                 ),
               ),
             ],

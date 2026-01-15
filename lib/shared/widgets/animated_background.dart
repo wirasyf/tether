@@ -8,12 +8,14 @@ class AnimatedBackground extends StatefulWidget {
   final Widget? child;
   final List<Color>? colors;
   final bool enableParticles;
+  final bool lowPowerMode;
 
   const AnimatedBackground({
     super.key,
     this.child,
     this.colors,
     this.enableParticles = true,
+    this.lowPowerMode = false,
   });
 
   @override
@@ -31,23 +33,24 @@ class _AnimatedBackgroundState extends State<AnimatedBackground>
   @override
   void initState() {
     super.initState();
+    // Use longer duration for better battery life
     _controller = AnimationController(
-      duration: const Duration(seconds: 15),
-      vsync: this,
-    )..repeat();
-
-    _pulseController = AnimationController(
-      duration: const Duration(seconds: 4),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _particleController = AnimationController(
       duration: const Duration(seconds: 20),
       vsync: this,
     )..repeat();
 
-    // Generate particles
-    _particles = List.generate(30, (index) => _Particle.random(_random));
+    _pulseController = AnimationController(
+      duration: const Duration(seconds: 5),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _particleController = AnimationController(
+      duration: const Duration(seconds: 25),
+      vsync: this,
+    )..repeat();
+
+    // Generate fewer particles for better performance (15 instead of 30)
+    _particles = List.generate(15, (index) => _Particle.random(_random));
   }
 
   @override
@@ -60,39 +63,47 @@ class _AnimatedBackgroundState extends State<AnimatedBackground>
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        _controller,
-        _pulseController,
-        _particleController,
-        ThemeService.instance,
-      ]),
-      builder: (context, child) {
-        final theme = ThemeService.instance;
-        final primaryColor = Color(theme.primaryColor);
-        final secondaryColor = Color(theme.secondaryColor);
-        final bgColor = Color(theme.backgroundColor);
+    // Use RepaintBoundary to isolate repainting from rest of widget tree
+    return RepaintBoundary(
+      child: ListenableBuilder(
+        listenable: Listenable.merge([
+          _controller,
+          _pulseController,
+          if (!widget.lowPowerMode) _particleController,
+          ThemeService.instance,
+        ]),
+        builder: (context, child) {
+          final theme = ThemeService.instance;
+          final primaryColor = Color(theme.primaryColor);
+          final secondaryColor = Color(theme.secondaryColor);
+          final bgColor = Color(theme.backgroundColor);
 
-        return CustomPaint(
-          painter: _BackgroundPainter(
-            animationValue: _controller.value,
-            pulseValue: _pulseController.value,
-            particleValue: _particleController.value,
-            particles: (widget.enableParticles && theme.showParticles)
-                ? _particles
-                : [],
-            colors:
-                widget.colors ??
-                [
-                  bgColor,
-                  bgColor.withValues(alpha: 0.9),
-                  primaryColor.withValues(alpha: 0.25),
-                  secondaryColor.withValues(alpha: 0.15),
-                ],
-          ),
-          child: widget.child,
-        );
-      },
+          return CustomPaint(
+            painter: _BackgroundPainter(
+              animationValue: _controller.value,
+              pulseValue: _pulseController.value,
+              particleValue: widget.lowPowerMode
+                  ? 0
+                  : _particleController.value,
+              particles:
+                  (widget.enableParticles &&
+                      theme.showParticles &&
+                      !widget.lowPowerMode)
+                  ? _particles
+                  : [],
+              colors:
+                  widget.colors ??
+                  [
+                    bgColor,
+                    bgColor.withValues(alpha: 0.9),
+                    primaryColor.withValues(alpha: 0.25),
+                    secondaryColor.withValues(alpha: 0.15),
+                  ],
+            ),
+            child: widget.child,
+          );
+        },
+      ),
     );
   }
 }
