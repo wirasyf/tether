@@ -80,6 +80,9 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
                   const SizedBox(width: 12),
                   // Days counter
                   _buildDaysCounter(),
+                  const SizedBox(width: 12),
+                  // Partner Mood
+                  _buildPartnerMoodBadge(),
                   const Spacer(),
                   // Right side: Achievement icon + settings
                   _buildAchievementBadge(),
@@ -90,17 +93,6 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
             ),
           ),
         ),
-
-        // Partner mood indicator
-        if (MoodService.instance.partnerMood != null)
-          Positioned(
-            top: 80,
-            left: 16,
-            child: PartnerMoodIndicator(
-              mood: MoodService.instance.partnerMood!,
-              timestamp: MoodService.instance.partnerMoodTime,
-            ),
-          ),
 
         // Message overlay
         if (_currentMessage != null)
@@ -235,6 +227,37 @@ class _CanvasOverlayState extends State<CanvasOverlay> {
       await RelationshipService.instance.setStartDate(picked);
       HapticFeedback.lightImpact();
     }
+  }
+
+  Widget _buildPartnerMoodBadge() {
+    return ListenableBuilder(
+      listenable: MoodService.instance,
+      builder: (context, _) {
+        final mood = MoodService.instance.partnerMood;
+        if (mood == null) return const SizedBox.shrink();
+
+        return GlassCard(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          borderRadius: 16,
+          enableGlow: false,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(mood.emoji, style: const TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+              Text(
+                mood.displayName,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildAchievementBadge() {

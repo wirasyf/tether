@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'achievement_service.dart';
 
 /// Statistics for touch interactions
 class TouchStats {
@@ -201,6 +202,13 @@ class StatsService extends ChangeNotifier {
 
     notifyListeners();
     await _saveStats();
+
+    // Check achievements
+    await AchievementService.instance.checkAchievements(
+      totalTouches: _stats.totalTouches,
+      totalGestures: _stats.totalGestures,
+      currentStreak: _stats.currentStreak,
+    );
   }
 
   /// Record a gesture event
@@ -214,6 +222,14 @@ class StatsService extends ChangeNotifier {
 
     notifyListeners();
     await _saveStats();
+
+    // Check achievements
+    await AchievementService.instance.checkAchievements(
+      totalTouches: _stats.totalTouches,
+      totalGestures: _stats.totalGestures,
+      currentStreak: _stats.currentStreak,
+    );
+    await AchievementService.instance.checkLoveGesture();
   }
 
   Future<void> _saveStats() async {

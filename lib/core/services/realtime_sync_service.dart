@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../../models/touch_event.dart';
 import '../../models/gesture_type.dart';
+import 'stats_service.dart';
 
 /// Real-time sync service using Firebase Realtime Database
 /// Enables touch and gesture synchronization between devices
@@ -112,6 +113,9 @@ class RealtimeSyncService {
 
       // Clean up old touches (keep last 50)
       _cleanupOldEvents('touches');
+
+      // Record stats
+      await StatsService.instance.recordTouch();
     } catch (e) {
       debugPrint('Failed to send touch: $e');
     }
@@ -130,6 +134,9 @@ class RealtimeSyncService {
 
       // Clean up old gestures (keep last 20)
       _cleanupOldEvents('gestures');
+
+      // Record stats
+      await StatsService.instance.recordGesture();
     } catch (e) {
       debugPrint('Failed to send gesture: $e');
     }

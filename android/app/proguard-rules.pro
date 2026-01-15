@@ -13,3 +13,7 @@
 -dontwarn org.bouncycastle.**
 -dontwarn org.conscrypt.**
 -dontwarn javax.naming.**
+
+# Play Core rules
+-keep class com.google.android.play.core.** { *; }
+-dontwarn com.google.android.play.core.**
